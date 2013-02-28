@@ -25,12 +25,7 @@ require.config({
 // Defer Qunit so RequireJS can work its magic and resolve all modules.
 // QUnit.config.autostart = false;
 
-var requiredModules = [
-    "ModelItemTests"
-];
-
-require(['../src/backbone-websql-table', 'ModelItem', 'qunit', "ModelItemTests"], 
-    function(Adapter, ModelItem, qunit, ModelItemTests){
+require(['BasicTests'], function(BasicTests){
     // console.log("required");
 
     // QUnit.start();
