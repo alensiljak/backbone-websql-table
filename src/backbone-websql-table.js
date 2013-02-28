@@ -32,16 +32,23 @@
       };
 
       WebSqlTableStore.prototype.createTable = function(options) {
-        var attribute, error, success, _i, _len, _ref;
+        var error, field, fields, fieldsString, key, success, _i, _len;
         if (!this.model) {
           console.error("Model not passed for store initialization!");
         }
         console.debug("creating table");
-        _ref = this.model;
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          attribute = _ref[_i];
-          console.log(attribute);
+        fields = [];
+        for (key in this.model.attributes) {
+          if (key !== "id") {
+            fields.push(key);
+          }
         }
+        fieldsString = "";
+        for (_i = 0, _len = fields.length; _i < _len; _i++) {
+          field = fields[_i];
+          fieldsString += ",'" + field + "'";
+        }
+        console.debug(fieldsString);
         success = function(tx, res) {
           if (options.success) {
             return options.success();

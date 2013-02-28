@@ -10,10 +10,12 @@ define ['backbone', '../src/backbone-websql-table'], (Backbone, BackboneWebsqlTa
 
         # standard model properties, for test only.
         Name: ""
+        Number: 0
         PhoneNumber: 0
 
-        initialize: ->
-            @store = @initializeDataStore()
+        initialize: (attributes, options) ->
+            options = options || {}
+            @store = @initializeDataStore(options)
 
         createDefaultDbOptions: ->
             options = {
@@ -21,10 +23,12 @@ define ['backbone', '../src/backbone-websql-table'], (Backbone, BackboneWebsqlTa
             }
             return options
 
-        initializeDataStore: ->
+        initializeDataStore: (options) ->
             # initialize store required by Backbone webSql
             tableName = "Item"
-            options = @createDefaultDbOptions()
+            defaultOptions = @createDefaultDbOptions()
+            _.extend(options, defaultOptions)
+
             options.success = ->
                 console.log "initSuccessCallback"
             options.error = ->

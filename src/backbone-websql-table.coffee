@@ -29,8 +29,19 @@ define ['underscore'], (_) ->
             console.debug "creating table"
 
             # todo: create fields for every model attribute.
-            for attribute in @model
-                console.log attribute
+            fields = []
+            for key of @model.attributes
+                if key != "id" 
+                    fields.push key
+                #console.log key
+            #console.log fields
+
+            # todo: generate string
+            fieldsString = ""
+            for field in fields
+                fieldsString += ",'" + field + "'"
+            console.debug fieldsString
+
             success = (tx,res) ->
                 if options.success then options.success()
             

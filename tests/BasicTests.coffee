@@ -13,12 +13,32 @@ define ['ModelItem'], (ModelItem) ->
     }
 
     QUnit.test "instantiate model", () ->
-        item = new ModelItem()
+        item = new ModelItem({
+            Name: "first item",
+            Number: 1
+            })
 
-        ok(item, "Item created.")
+        ok(item, "Item instantiated.")
 
-    QUnit.test "creates table on init", () ->
-        item = new ModelItem()
+    test "set db name", ->
+        options = {
+            databaseName: "TestDatabase"
+        }
+        item = new ModelItem({
+            Name: "item with custom db name"
+            }, options)
+        expect(0)
+        # manually test the table name for now
 
-        ok(item, "check if tables created created.")
+    QUnit.test "save and load Item", () ->
+        item = new ModelItem({
+            #id: "testItem"
+            Name: "first item",
+            Number: 1
+            })
+        item.save()
+
+        fetchResult = item.fetch()
+
+        ok(false, "check if tables created created.")
 

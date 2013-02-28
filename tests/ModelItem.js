@@ -25,10 +25,13 @@
 
       ModelItem.prototype.Name = "";
 
+      ModelItem.prototype.Number = 0;
+
       ModelItem.prototype.PhoneNumber = 0;
 
-      ModelItem.prototype.initialize = function() {
-        return this.store = this.initializeDataStore();
+      ModelItem.prototype.initialize = function(attributes, options) {
+        options = options || {};
+        return this.store = this.initializeDataStore(options);
       };
 
       ModelItem.prototype.createDefaultDbOptions = function() {
@@ -37,10 +40,11 @@
         return options;
       };
 
-      ModelItem.prototype.initializeDataStore = function() {
-        var options, store, tableName;
+      ModelItem.prototype.initializeDataStore = function(options) {
+        var defaultOptions, store, tableName;
         tableName = "Item";
-        options = this.createDefaultDbOptions();
+        defaultOptions = this.createDefaultDbOptions();
+        _.extend(options, defaultOptions);
         options.success = function() {
           return console.log("initSuccessCallback");
         };

@@ -11,13 +11,31 @@
     });
     QUnit.test("instantiate model", function() {
       var item;
-      item = new ModelItem();
-      return ok(item, "Item created.");
+      item = new ModelItem({
+        Name: "first item",
+        Number: 1
+      });
+      return ok(item, "Item instantiated.");
     });
-    return QUnit.test("creates table on init", function() {
-      var item;
-      item = new ModelItem();
-      return ok(item, "check if tables created created.");
+    test("set db name", function() {
+      var item, options;
+      options = {
+        databaseName: "TestDatabase"
+      };
+      item = new ModelItem({
+        Name: "item with custom db name"
+      }, options);
+      return expect(0);
+    });
+    return QUnit.test("save and load Item", function() {
+      var fetchResult, item;
+      item = new ModelItem({
+        Name: "first item",
+        Number: 1
+      });
+      item.save();
+      fetchResult = item.fetch();
+      return ok(false, "check if tables created created.");
     });
   });
 
