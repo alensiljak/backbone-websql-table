@@ -5,7 +5,56 @@
     var WebSqlTableStore;
     WebSqlTableStore = (function() {
 
-      function WebSqlTableStore() {}
+      WebSqlTableStore.prototype.tableName = null;
+
+      function WebSqlTableStore(db, model, initSuccessCallback, initErrorCallback) {
+        var error, success;
+        this.db = db;
+        this.model = model;
+        success = function(tx, res) {
+          if (initSuccessCallback) {
+            return initSuccessCallback();
+          }
+        };
+        error = function(tx, error) {
+          window.console.error("Error while create table", error);
+          if (initErrorCallback) {
+            return initErrorCallback();
+          }
+        };
+        this.createTable(this.model);
+      }
+
+      WebSqlTableStore.prototype.createTable = function(model) {
+        var attribute, _i, _len;
+        if (!model) {
+          console.error("Model not passed for store initialization!");
+        }
+        console.debug("creating table");
+        this.tableName = typeof model;
+        for (_i = 0, _len = model.length; _i < _len; _i++) {
+          attribute = model[_i];
+          console.log(attribute);
+        }
+        return this._executeSql("CREATE TABLE IF NOT EXISTS `" + tableName + "` (`id` unique, `value`);", null, success, error);
+      };
+
+      WebSqlTableStore.prototype._executeSql = function(SQL, params, successCallback, errorCallback) {
+        var error, success;
+        success = function(tx, result) {
+          if (successCallback) {
+            return successCallback(tx, result);
+          }
+        };
+        error = function(tx, error) {
+          if (errorCallback) {
+            return errorCallback(tx, error);
+          }
+        };
+        return this.db.transaction(function(tx) {
+          return tx.executeSql(SQL, params, success, error);
+        });
+      };
 
       return WebSqlTableStore;
 
