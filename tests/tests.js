@@ -14,42 +14,26 @@ require.config({
         'backbone': {
             deps: ["underscore"],
             exports: "Backbone"
-        }
-
+        },
+        'qunit': {
+            deps: [],
+            exports: "Qunit"
+        } 
     }
 });
 
-/*
-test("hello test", function() {
-    ok( 1 == "1", "Passed!" )
-});
-*/
+// Defer Qunit so RequireJS can work its magic and resolve all modules.
+// QUnit.config.autostart = false;
 
-require(['../src/backbone-websql-table', 'ModelItem', 'qunit'], 
-    function(Adapter, ModelItem, qunit){
+var requiredModules = [
+    "ModelItemTests"
+];
+
+require(['../src/backbone-websql-table', 'ModelItem', 'qunit', "ModelItemTests"], 
+    function(Adapter, ModelItem, qunit, ModelItemTests){
     // console.log("required");
 
-    test("hello require", function(){
-        ok(0 == "0", "Passed!");
-    });
-
-/*
-    test("can instantiate", function(){
-        var adapter = new Adapter();
-        ok(adapter, "adapter instantiated.");
-    });
-*/
-    test("instantiate model", function(){
-        var item = new ModelItem();
-
-        ok(item, "Item created.");
-    });
-    test("creates table on init", function(){
-        var item = new ModelItem();
-
-        ok(item, "Item created.");
-    });
-
+    // QUnit.start();
 
 })
 
