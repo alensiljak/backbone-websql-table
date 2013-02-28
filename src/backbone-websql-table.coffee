@@ -1,28 +1,50 @@
 # Written as a Require.js module.
 
-define [], () ->
+define ['underscore'], (_) ->
     class WebSqlTableStore
-        tableName: null
+        constructor: (@model, options) ->
+            # create table if required
+            defaultOptions = @getDefaultOptions()
+            _.extend(options, defaultOptions)
+            options.tableName = model.constructor.name
 
-        constructor: (@db, @model, initSuccessCallback, initErrorCallback) ->
+            @openDatabase(options)
+
+            @createTable(options)
+
+        getDefaultOptions: ->
+            options = {
+                success: ->
+                    console.log "success"
+                error: ->
+                    console.log "error"
+                databaseName: "BackboneWebSqlDb"
+                tableName: "DefaultTable"
+                dbVersion: "1.0"
+                dbSize: 1000000
+            }
+
+        createTable: (options) ->
+            if not @model then console.error "Model not passed for store initialization!"
+            console.debug "creating table"
+
+            # todo: create fields for every model attribute.
+            for attribute in @model
+                console.log attribute
             success = (tx,res) ->
-                if initSuccessCallback then initSuccessCallback()
+                if options.success then options.success()
             
             error = (tx,error) ->
                 window.console.error("Error while create table",error)
-                if initErrorCallback then initErrorCallback()
-            
-            @createTable(@model)
+                if options.error then options.error()
 
-        createTable: (model) ->
-            if not model then console.error "Model not passed for store initialization!"
-            
-            console.debug "creating table"
-            @tableName = typeof(model)
-            # todo: create fields for every model attribute.
-            for attribute in model
-                console.log attribute
-            @_executeSql("CREATE TABLE IF NOT EXISTS `" + tableName + "` (`id` unique, `value`);",null,success, error)
+            @_executeSql("CREATE TABLE IF NOT EXISTS `" + options.tableName + "` (`id` unique, `value`);", \
+                null, success, error)
+
+        openDatabase: (options) ->
+            if not @db 
+                @db = window.openDatabase(options.databaseName, options.dbVersion, options.databaseName, options.dbSize);
+            return @db
 
         _executeSql: (SQL, params, successCallback, errorCallback) ->
             success = (tx,result) ->

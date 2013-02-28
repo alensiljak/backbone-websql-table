@@ -1,29 +1,24 @@
 # Basic tests.
 
-define ['ModelItem', 'require'], (ModelItem, require) ->
-    #item = new ModelItem()
-    #console.log item
-    #console.log qunit, QUnit
-    QUnit.module "insider"
-
-    test "test in define", ->
-        ok(true, "we are in module")
-
-    QUnit.module "ModelItem"
-
-    QUnit.test "hola muchachos", ->
-        ok 1 == 1, "Loading coffeescript modules"
+define ['ModelItem'], (ModelItem) ->
 
     QUnit.test "hello require", () ->
         ok 0 == 0, "Passed?!"
 
-    test "instantiate model", () ->
+    QUnit.module "ModelItem", {
+        setup: () ->
+            # setup
+        teardown: () ->
+            # cleanup
+    }
+
+    QUnit.test "instantiate model", () ->
         item = new ModelItem()
 
         ok(item, "Item created.")
 
-    test "creates table on init", () ->
+    QUnit.test "creates table on init", () ->
         item = new ModelItem()
 
-        ok(item, "Item created.")
+        ok(item, "check if tables created created.")
 
