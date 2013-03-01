@@ -20,7 +20,7 @@ define ['ModelItem'], (ModelItem) ->
 
         ok(item, "Item instantiated.")
 
-    test "set db name", ->
+    QUnit.test "set db name", ->
         options = {
             databaseName: "TestDatabase"
         }
@@ -31,8 +31,26 @@ define ['ModelItem'], (ModelItem) ->
         # manually test the table name for now
 
     test "save and load Item", () ->
+        onLoad = (model, response, options) ->
+            console.log "item loaded"
+            ok(model.id, "item does not have id.")
+
+        onSave = (model, response, options) ->
+            console.log "model saved"
+            id = model.id
+
+            # reset item
+            item = new ModelItem({id: id}, options)
+            loadOptions = {
+                success: onLoad
+            }
+            item.fetch(loadOptions)
+
         options = {
             databaseName: "TestDatabase"
+            success: -> onSave
+            error: ->
+                console.log "error on save"
         }
 
         item = new ModelItem({
@@ -41,11 +59,15 @@ define ['ModelItem'], (ModelItem) ->
             Number: 1
             })
         item.save(null, options)
-        id = item.id
 
-        # reset item
-        item = new ModelItem({id: id}, options)
-        fetchResult = item.fetch()
+    test "two models", () ->
+        # check whether there is db locking by per-model store
+        item = new ModelItem()
+        item.save()
 
-        ok(false, "check if tables created created.")
+        item2 = new ModelItem()
+        item2.save()
 
+        # todo: also try 2 different models
+        #ok(true, "unfinished")
+        expect 0

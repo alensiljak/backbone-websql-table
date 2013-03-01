@@ -17,7 +17,7 @@
       });
       return ok(item, "Item instantiated.");
     });
-    test("set db name", function() {
+    QUnit.test("set db name", function() {
       var item, options;
       options = {
         databaseName: "TestDatabase"
@@ -27,22 +27,46 @@
       }, options);
       return expect(0);
     });
-    return test("save and load Item", function() {
-      var fetchResult, id, item, options;
+    test("save and load Item", function() {
+      var item, onLoad, onSave, options;
+      onLoad = function(model, response, options) {
+        console.log("item loaded");
+        return ok(model.id, "item does not have id.");
+      };
+      onSave = function(model, response, options) {
+        var id, item, loadOptions;
+        console.log("model saved");
+        id = model.id;
+        item = new ModelItem({
+          id: id
+        }, options);
+        loadOptions = {
+          success: onLoad
+        };
+        return item.fetch(loadOptions);
+      };
       options = {
-        databaseName: "TestDatabase"
+        databaseName: "TestDatabase",
+        success: function() {
+          return onSave;
+        },
+        error: function() {
+          return console.log("error on save");
+        }
       };
       item = new ModelItem({
         Name: "first item",
         Number: 1
       });
-      item.save(null, options);
-      id = item.id;
-      item = new ModelItem({
-        id: id
-      }, options);
-      fetchResult = item.fetch();
-      return ok(false, "check if tables created created.");
+      return item.save(null, options);
+    });
+    return test("two models", function() {
+      var item, item2;
+      item = new ModelItem();
+      item.save();
+      item2 = new ModelItem();
+      item2.save();
+      return expect(0);
     });
   });
 

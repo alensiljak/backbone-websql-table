@@ -2,21 +2,19 @@
 
 define ['underscore'], (_) ->
     class WebSqlTableStore
-        constructor: (@model, options) ->
-            # create table if required
-            defaultOptions = @getDefaultOptions()
-            _.extend(options, defaultOptions)
-            options.tableName = model.constructor.name
 
-            @openDatabase(options)
-
-            @createTable(options)
-
-        #static methods
+        #
+        # static methods
+        #
 
         @sync = (method, model, options) ->
             #console.log "sync:", method, model, options
-            store = WebSqlTableStore.getStoreForModel(model, options)
+            console.log "sync"
+            if not model.store 
+                store = new WebSqlTableStore(model, options)
+                #stores.push store
+                #model.store = store
+            #store = WebSqlTableStore.getStoreForModel(model, options)
 
             switch method
                 when "read"
@@ -28,21 +26,21 @@ define ['underscore'], (_) ->
                 when "delete"
                     console.log "delete"
 
-        @getStoreForModel: (model, options) ->
-            # Check if we have the store for this model
-            #stores = stores || []
-            #store = _.find stores, (store) ->
-            #    console.log store
-            #    return false
-            # If not, create one and add to collection.
-            if not model.store 
-                store = new WebSqlTableStore(model, options)
-                #stores.push store
-                model.store = store
-            # return store
-            return model.store
-
+        #
         # class methods
+        #
+
+        constructor: (@model, options) ->
+            @model.store = @
+
+            # create table if required
+            defaultOptions = @getDefaultOptions()
+            _.extend(options, defaultOptions)
+            options.tableName = model.constructor.name
+
+            @db = @openDatabase(options)
+
+            @createTable(@model, options)
 
         getDefaultOptions: ->
             options = {
@@ -57,13 +55,13 @@ define ['underscore'], (_) ->
             }
 
         # todo: take all arguments from the model, not just the ones passed in.
-        createTable: (options) ->
-            if not @model then console.error "Model not passed for store initialization!"
-            console.debug "creating table"
+        createTable: (model, options) ->
+            if not model then console.error "Model not passed for store initialization!"
+            console.debug "create table"
 
             # create fields for every model attribute.
             fields = []
-            for key of @model.attributes
+            for key of model.attributes
                 if key != "id" 
                     fields.push key
                 #console.log key

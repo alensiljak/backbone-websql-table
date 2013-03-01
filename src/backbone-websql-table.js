@@ -5,19 +5,12 @@
     var WebSqlTableStore;
     WebSqlTableStore = (function() {
 
-      function WebSqlTableStore(model, options) {
-        var defaultOptions;
-        this.model = model;
-        defaultOptions = this.getDefaultOptions();
-        _.extend(options, defaultOptions);
-        options.tableName = model.constructor.name;
-        this.openDatabase(options);
-        this.createTable(options);
-      }
-
       WebSqlTableStore.sync = function(method, model, options) {
         var store;
-        store = WebSqlTableStore.getStoreForModel(model, options);
+        console.log("sync");
+        if (!model.store) {
+          store = new WebSqlTableStore(model, options);
+        }
         switch (method) {
           case "read":
             return console.log("read");
@@ -30,14 +23,16 @@
         }
       };
 
-      WebSqlTableStore.getStoreForModel = function(model, options) {
-        var store;
-        if (!model.store) {
-          store = new WebSqlTableStore(model, options);
-          model.store = store;
-        }
-        return model.store;
-      };
+      function WebSqlTableStore(model, options) {
+        var defaultOptions;
+        this.model = model;
+        this.model.store = this;
+        defaultOptions = this.getDefaultOptions();
+        _.extend(options, defaultOptions);
+        options.tableName = model.constructor.name;
+        this.db = this.openDatabase(options);
+        this.createTable(this.model, options);
+      }
 
       WebSqlTableStore.prototype.getDefaultOptions = function() {
         var options;
@@ -55,14 +50,14 @@
         };
       };
 
-      WebSqlTableStore.prototype.createTable = function(options) {
+      WebSqlTableStore.prototype.createTable = function(model, options) {
         var error, field, fields, fieldsString, key, sql, success, _i, _len;
-        if (!this.model) {
+        if (!model) {
           console.error("Model not passed for store initialization!");
         }
-        console.debug("creating table");
+        console.debug("create table");
         fields = [];
-        for (key in this.model.attributes) {
+        for (key in model.attributes) {
           if (key !== "id") {
             fields.push(key);
           }
