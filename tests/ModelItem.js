@@ -19,30 +19,27 @@
         return ModelItem.__super__.constructor.apply(this, arguments);
       }
 
-      ModelItem.prototype.dbName = "WebsqlStore";
-
-      ModelItem.prototype.tableName = "ModelItem";
-
-      ModelItem.prototype.Name = "";
-
-      ModelItem.prototype.Number = 0;
-
-      ModelItem.prototype.PhoneNumber = 0;
+      ModelItem.prototype.defaults = {
+        Name: "",
+        Number: 0,
+        PhoneNumber: 0
+      };
 
       ModelItem.prototype.initialize = function(attributes, options) {
-        options = options || {};
-        return this.store = this.initializeDataStore(options);
+        return this.sync = BackboneWebsqlTable.sync;
       };
 
       ModelItem.prototype.createDefaultDbOptions = function() {
         var options;
-        options = {};
+        options = {
+          databaseName: "WebsqlStore",
+          tableName: "ModelItem"
+        };
         return options;
       };
 
       ModelItem.prototype.initializeDataStore = function(options) {
-        var defaultOptions, store, tableName;
-        tableName = "Item";
+        var defaultOptions, store;
         defaultOptions = this.createDefaultDbOptions();
         _.extend(options, defaultOptions);
         options.success = function() {

@@ -27,13 +27,20 @@
       }, options);
       return expect(0);
     });
-    return QUnit.test("save and load Item", function() {
-      var fetchResult, item;
+    return test("save and load Item", function() {
+      var fetchResult, id, item, options;
+      options = {
+        databaseName: "TestDatabase"
+      };
       item = new ModelItem({
         Name: "first item",
         Number: 1
       });
-      item.save();
+      item.save(null, options);
+      id = item.id;
+      item = new ModelItem({
+        id: id
+      }, options);
       fetchResult = item.fetch();
       return ok(false, "check if tables created created.");
     });

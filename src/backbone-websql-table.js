@@ -15,6 +15,30 @@
         this.createTable(options);
       }
 
+      WebSqlTableStore.sync = function(method, model, options) {
+        var store;
+        store = WebSqlTableStore.getStoreForModel(model, options);
+        switch (method) {
+          case "read":
+            return console.log("read");
+          case "create":
+            return console.log("create");
+          case "update":
+            return console.log("update");
+          case "delete":
+            return console.log("delete");
+        }
+      };
+
+      WebSqlTableStore.getStoreForModel = function(model, options) {
+        var store;
+        if (!model.store) {
+          store = new WebSqlTableStore(model, options);
+          model.store = store;
+        }
+        return model.store;
+      };
+
       WebSqlTableStore.prototype.getDefaultOptions = function() {
         var options;
         return options = {
@@ -32,7 +56,7 @@
       };
 
       WebSqlTableStore.prototype.createTable = function(options) {
-        var error, field, fields, fieldsString, key, success, _i, _len;
+        var error, field, fields, fieldsString, key, sql, success, _i, _len;
         if (!this.model) {
           console.error("Model not passed for store initialization!");
         }
@@ -48,8 +72,8 @@
           field = fields[_i];
           fieldsString += ",'" + field + "'";
         }
-        console.debug(fieldsString);
         success = function(tx, res) {
+          console.log("table created");
           if (options.success) {
             return options.success();
           }
@@ -60,7 +84,8 @@
             return options.error();
           }
         };
-        return this._executeSql("CREATE TABLE IF NOT EXISTS `" + options.tableName + "` (`id` unique, `value`);", null, success, error);
+        sql = "CREATE TABLE IF NOT EXISTS '" + options.tableName + "' ('id' unique, " + fieldsString + ");";
+        return this._executeSql(sql, null, success, error);
       };
 
       WebSqlTableStore.prototype.openDatabase = function(options) {

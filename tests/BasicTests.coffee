@@ -30,14 +30,21 @@ define ['ModelItem'], (ModelItem) ->
         expect(0)
         # manually test the table name for now
 
-    QUnit.test "save and load Item", () ->
+    test "save and load Item", () ->
+        options = {
+            databaseName: "TestDatabase"
+        }
+
         item = new ModelItem({
             #id: "testItem"
             Name: "first item",
             Number: 1
             })
-        item.save()
+        item.save(null, options)
+        id = item.id
 
+        # reset item
+        item = new ModelItem({id: id}, options)
         fetchResult = item.fetch()
 
         ok(false, "check if tables created created.")
