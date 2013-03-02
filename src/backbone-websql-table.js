@@ -67,9 +67,11 @@
             console.log("sync: create");
             return store.create(model, options.success, options.error);
           case "update":
-            return console.log("sync: update");
+            console.log("sync: update");
+            return store.update(model, options);
           case "delete":
-            return console.log("sync: delete");
+            console.log("sync: delete");
+            return store["delete"](model, options.success, options.error);
         }
       };
 
@@ -124,6 +126,13 @@
         fieldsPlaceholder = this.getFieldsPlaceholder(fields);
         sql = "INSERT INTO '" + model.store.tableName + "' (" + fieldsString + ") VALUES (" + fieldsPlaceholder + ");";
         return this._executeSql(sql, values, success, error);
+      };
+
+      WebSqlTableStore.prototype["delete"] = function(model, success, error) {
+        var id, sql;
+        id = model.attributes[model.idAttribute] || model.attributes.id;
+        sql = "DELETE FROM '" + this.tableName + "' WHERE (id=?);";
+        return this._executeSql(sql, [model.attributes[model.idAttribute]], success, error);
       };
 
       WebSqlTableStore.prototype.getDefaultOptions = function() {
@@ -241,6 +250,14 @@
           console.debug("running on", _this.databaseName, _this.tableName, ":", sql, "with params", params);
           return tx.executeSql(sql, params, success, error);
         }, txError, txSuccess);
+      };
+
+      WebSqlTableStore.prototype.update = function(model, options) {
+        var id, sql;
+        console.error("not implemented");
+        id = model.attributes[model.idAttribute] || model.attributes.id;
+        sql = "UPDATE '" + this.tableName + "' SET `value`=? WHERE(`id`=?);";
+        return this._executeSql(sql, [JSON.stringify(model.toJSON()), model.attributes[model.idAttribute]], success, error);
       };
 
       return WebSqlTableStore;

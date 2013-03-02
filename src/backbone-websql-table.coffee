@@ -70,8 +70,10 @@ define ['underscore'], (_) ->
                     store.create model, options.success, options.error
                 when "update"
                     console.log "sync: update"
+                    store.update model, options
                 when "delete"
                     console.log "sync: delete"
+                    store.delete model, options.success, options.error
 
         #
         # class methods
@@ -136,6 +138,12 @@ define ['underscore'], (_) ->
             sql = "INSERT INTO '" + model.store.tableName + "' (" + fieldsString + ") VALUES (" + fieldsPlaceholder + ");"
             #@_executeSql sql, [model.attributes[model.idAttribute], JSON.stringify(model.toJSON())], success, error
             @_executeSql sql, values, success, error
+
+        delete: (model, success, error) ->
+            # window.console.log("sql destroy");
+            id = model.attributes[model.idAttribute] or model.attributes.id
+            sql = "DELETE FROM '" + @tableName + "' WHERE (id=?);"
+            @_executeSql sql,[model.attributes[model.idAttribute]], success, error
 
         getDefaultOptions: ->
             options = {
@@ -243,4 +251,11 @@ define ['underscore'], (_) ->
                 tx.executeSql(sql, params, success, error)
             , txError, txSuccess
 
+        update: (model, options) ->
+            console.error "not implemented"
+
+            id = model.attributes[model.idAttribute] or model.attributes.id
+            sql = "UPDATE '" + @tableName + "' SET `value`=? WHERE(`id`=?);"
+            @_executeSql sql,[JSON.stringify(model.toJSON()), model.attributes[model.idAttribute]], success, error
+    
     return WebSqlTableStore
