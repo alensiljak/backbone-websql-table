@@ -27,11 +27,28 @@
       }, options);
       return expect(0);
     });
-    test("save and load Item", function() {
+    asyncTest("custom Db name", function() {
+      var item, options;
+      options = {
+        databaseName: "TestDatabase",
+        success: function() {
+          start();
+          return void 0;
+        }
+      };
+      item = new ModelItem({
+        Name: "first item",
+        Number: 1
+      });
+      item.save(null, options);
+      return expect(0);
+    });
+    asyncTest("save and load Item", function() {
       var item, onLoad, onSave, options;
       onLoad = function(model, response, options) {
         console.log("item loaded");
-        ok(model.id, "item does not have id.");
+        ok(model.id, "Item should have an id set.");
+        ok(model.get('Name') === "first item", "Item's Name should be the one set on Save.");
         return start();
       };
       onSave = function(model, response, options) {
@@ -48,14 +65,11 @@
       };
       options = {
         databaseName: "TestDatabase",
-        success: function() {
-          return onSave;
-        },
-        error: function() {
+        success: onSave,
+        error: function(model, tx, options) {
           return console.log("error on save");
         }
       };
-      stop();
       item = new ModelItem({
         Name: "first item",
         Number: 1
@@ -65,9 +79,7 @@
     return test("two models", function() {
       var item, item2;
       item = new ModelItem();
-      item.save();
       item2 = new ModelItem();
-      item2.save();
       return expect(0);
     });
   });

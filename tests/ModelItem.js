@@ -41,7 +41,7 @@
       ModelItem.prototype.initializeDataStore = function(options) {
         var defaultOptions, store;
         defaultOptions = this.createDefaultDbOptions();
-        _.extend(options, defaultOptions);
+        _.defaults(options, defaultOptions);
         options.success = function() {
           return console.log("initSuccessCallback");
         };

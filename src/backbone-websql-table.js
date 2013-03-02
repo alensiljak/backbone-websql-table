@@ -2,8 +2,40 @@
 (function() {
 
   define(['underscore'], function(_) {
-    var WebSqlTableStore;
+    var Guid, WebSqlTableStore;
+    Guid = (function() {
+      var VARIANT_CLEAR, VARIANT_VALUE, VERSION_CLEAR, VERSION_VALUE;
+
+      function Guid() {}
+
+      Guid.prototype.S4 = function() {
+        return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1);
+      };
+
+      VERSION_VALUE = 0x4;
+
+      VERSION_CLEAR = 0x0;
+
+      VARIANT_VALUE = 0x8;
+
+      VARIANT_CLEAR = 0x3;
+
+      Guid.prototype.guid = function() {
+        var data3_version, data4_variant, newGuid;
+        data3_version = this.S4();
+        data3_version = (parseInt(data3_version.charAt(0), 16) & VERSION_CLEAR | VERSION_VALUE).toString(16) + data3_version.substr(1, 3);
+        data4_variant = this.S4();
+        data4_variant = data4_variant.substr(0, 2) + (parseInt(data4_variant.charAt(2), 16) & VARIANT_CLEAR | VARIANT_VALUE).toString(16) + data4_variant.substr(3, 1);
+        newGuid = this.S4() + this.S4() + '-' + this.S4() + '-' + data3_version + '-' + data4_variant + '-' + this.S4() + this.S4() + this.S4();
+        return newGuid;
+      };
+
+      return Guid;
+
+    })();
     WebSqlTableStore = (function() {
+
+      WebSqlTableStore.prototype.tableName = "";
 
       WebSqlTableStore.sync = function(method, model, options) {
         var store;
@@ -13,13 +45,20 @@
         }
         switch (method) {
           case "read":
-            return console.log("read");
+            console.log("sync: read");
+            if (model.attributes && model.attributes[model.idAttribute]) {
+              return store.find(model, options.success, options.error);
+            } else {
+              return store.findAll(model, options.success, options.error);
+            }
+            break;
           case "create":
-            return console.log("create");
+            console.log("sync: create");
+            return store.create(model, options.success, options.error);
           case "update":
-            return console.log("update");
+            return console.log("sync: update");
           case "delete":
-            return console.log("delete");
+            return console.log("sync: delete");
         }
       };
 
@@ -29,10 +68,48 @@
         this.model.store = this;
         defaultOptions = this.getDefaultOptions();
         _.defaults(options, defaultOptions);
-        options.tableName = model.constructor.name;
+        this.tableName = model.constructor.name;
+        options.tableName = this.tableName;
         this.db = this.openDatabase(options);
         this.createTable(this.model, options);
       }
+
+      WebSqlTableStore.prototype.createTable = function(model, options) {
+        var error, fieldsString, sql, success;
+        if (!model) {
+          console.error("Model not passed for store initialization!");
+        }
+        fieldsString = this.getFieldsString(model);
+        success = function(tx, resultSet) {
+          return console.log("table create success");
+        };
+        error = function(tx, error) {
+          return window.console.error("Error while create table", error);
+        };
+        sql = "CREATE TABLE IF NOT EXISTS '" + options.tableName + "' ('id' unique" + fieldsString + ");";
+        return this._executeSql(sql, null, success, error);
+      };
+
+      WebSqlTableStore.prototype.create = function(model, success, error) {
+        var fields, fieldsPlaceholder, fieldsString, guid, id, obj, sql, values;
+        if (!model.attributes[model.idAttribute]) {
+          obj = {};
+          if (model.attributes.apiid) {
+            id = model.attributes.apiid;
+          } else {
+            guid = new Guid();
+            id = guid.guid();
+          }
+          obj[model.idAttribute] = id;
+          model.set(obj);
+        }
+        fields = this.getFieldsFrom(model);
+        fieldsString = this.getFieldsString(fields);
+        values = this.getModelAttributes(model);
+        fieldsPlaceholder = this.getFieldsPlaceholder(fields);
+        sql = "INSERT INTO '" + model.store.tableName + "' (" + fieldsString + ") VALUES (" + fieldsPlaceholder + ");";
+        return this._executeSql(sql, values, success, error);
+      };
 
       WebSqlTableStore.prototype.getDefaultOptions = function() {
         var options;
@@ -50,37 +127,78 @@
         };
       };
 
-      WebSqlTableStore.prototype.createTable = function(model, options) {
-        var error, field, fields, fieldsString, key, sql, success, _i, _len;
+      WebSqlTableStore.prototype.getFieldsFrom = function(model) {
+        var fields, key;
         if (!model) {
-          console.error("Model not passed for store initialization!");
+          throw {
+            name: "InvalidArgumentException",
+            message: "Model not passed to getFieldsFrom."
+          };
         }
-        console.debug("create table");
         fields = [];
         for (key in model.attributes) {
-          if (key !== "id") {
-            fields.push(key);
-          }
+          fields.push(key);
         }
+        return fields;
+      };
+
+      WebSqlTableStore.prototype.getFieldsString = function(fields) {
+        var field, fieldsString, index, _i, _len;
         fieldsString = "";
-        for (_i = 0, _len = fields.length; _i < _len; _i++) {
-          field = fields[_i];
-          fieldsString += ",'" + field + "'";
+        for (index = _i = 0, _len = fields.length; _i < _len; index = ++_i) {
+          field = fields[index];
+          if (index === 0) {
+            fieldsString += "'" + field + "'";
+          } else {
+            fieldsString += ",'" + field + "'";
+          }
         }
-        success = function(tx, res) {
-          console.log("table created");
-          if (options.success) {
-            return options.success();
+        return fieldsString;
+      };
+
+      WebSqlTableStore.prototype.getFieldsPlaceholder = function(fields) {
+        var index, key, result, _i, _len;
+        result = "";
+        for (index = _i = 0, _len = fields.length; _i < _len; index = ++_i) {
+          key = fields[index];
+          if (index === 0) {
+            result += "?";
+          } else {
+            result += ",?";
           }
-        };
-        error = function(tx, error) {
-          window.console.error("Error while create table", error);
-          if (options.error) {
-            return options.error();
-          }
-        };
-        sql = "CREATE TABLE IF NOT EXISTS '" + options.tableName + "' ('id' unique" + fieldsString + ");";
-        return this._executeSql(sql, null, success, error);
+        }
+        return result;
+      };
+
+      WebSqlTableStore.prototype.getModelAttributes = function(model) {
+        var key, values;
+        values = [];
+        for (key in model.attributes) {
+          values.push(model.get(key));
+        }
+        return values;
+      };
+
+      WebSqlTableStore.prototype.getModelValuesString = function(model) {
+        var value, values, valuesString, _i, _len;
+        values = this.getModelAttributes(model);
+        valuesString = "";
+        for (_i = 0, _len = values.length; _i < _len; _i++) {
+          value = values[_i];
+          valuesString += ",'" + value + "'";
+        }
+        return valuesString;
+      };
+
+      WebSqlTableStore.prototype.find = function(model, success, error) {
+        var id, sql;
+        id = model.attributes[model.idAttribute] || model.attributes.id;
+        sql = "SELECT `id`, `value` FROM `" + this.tableName + "` WHERE(`id`=?);";
+        return this._executeSql(sql, [model.attributes[model.idAttribute]], success, error);
+      };
+
+      WebSqlTableStore.prototype.findAll = function(model, success, error) {
+        return this._executeSql("SELECT * FROM '" + this.tableName + "';", null, success, error);
       };
 
       WebSqlTableStore.prototype.openDatabase = function(options) {

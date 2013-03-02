@@ -24,7 +24,8 @@ require.config {
             exports: "_"
         }
     }
-    urlArgs: "bust=" +  (new Date()).getTime()
+    # Used to bust cache. Not needed for Chrome as it resets breakpoints.
+    # urlArgs: "bust=" +  (new Date()).getTime()
 }
 
 # Defer Qunit so RequireJS can work its magic and resolve all modules.

@@ -25,7 +25,7 @@ define ['backbone', '../src/backbone-websql-table'], (Backbone, BackboneWebsqlTa
         initializeDataStore: (options) ->
             # initialize store required by Backbone webSql
             defaultOptions = @createDefaultDbOptions()
-            _.extend(options, defaultOptions)
+            _.defaults(options, defaultOptions)
 
             options.success = ->
                 console.log "initSuccessCallback"
