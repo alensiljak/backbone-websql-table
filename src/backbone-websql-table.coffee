@@ -47,8 +47,16 @@ define ['underscore'], (_) ->
             switch method
                 when "read"
                     console.log "sync: read"
+
+                    findSuccess = (tx, res) ->
+                        console.log "find success", res.rows.length
+
+                    findError = ->
+                        console.error "find error"
+
                     if model.attributes and model.attributes[model.idAttribute]
-                        store.find model, options.success, options.error
+                        #store.find model, options.success, options.error
+                        store.find model, findSuccess, findError
                     else
                         store.findAll model, options.success, options.error
                 when "create"
@@ -186,30 +194,42 @@ define ['underscore'], (_) ->
         find: (model, success, error) ->
             #window.console.log("sql find");
             id = model.attributes[model.idAttribute] || model.attributes.id
-            sql = "SELECT `id`, `value` FROM `"+this.tableName+"` WHERE(`id`=?);"
-            @_executeSql sql,[model.attributes[model.idAttribute]], success, error
+            sql = "SELECT * FROM '" + this.tableName + "' WHERE('id'=?);"
+
+            @_executeSql sql, [id], success, error
 
         findAll: (model, success,error) ->
             # window.console.log("sql findAll");
-            @_executeSql("SELECT * FROM '" + this.tableName + "';", null, success, error)
+            sql = "SELECT * FROM '" + this.tableName + "';"
+            @_executeSql sql, null, success, error
 
         openDatabase: (options) ->
             if not @db 
-                @db = window.openDatabase(options.databaseName, options.dbVersion, options.databaseName, options.dbSize);
+                @databaseName = options.databaseName
+                @db = window.openDatabase(@databaseName, options.dbVersion, @databaseName, options.dbSize);
             return @db
 
-        _executeSql: (SQL, params, successCallback, errorCallback) ->
-            success = (tx,result) ->
+        _executeSql: (sql, params, success, error) ->
+            success = success or (tx,result) ->
                 #if WebSQLStore.debug {window.console.log(SQL, params, " - finished");}
-                if successCallback then successCallback(tx,result)
+                #if successCallback then successCallback(tx,result)
+                console.log "executeSql success"
             
-            error = (tx,error) ->
+            error = error or (tx, error) ->
                 #if WebSQLStore.debug 
                 #    window.console.error(SQL, params, " - error: " + error)
-                if errorCallback then errorCallback(tx,error)
+                console.error error
+                #if errorCallback then errorCallback(tx,error)
             
-            @db.transaction( (tx) ->
-                tx.executeSql(SQL, params, success, error)
-            )
+            txSuccess = ->
+                # console.log "tx success"
+            txError = ->
+                # console.log "tx error"
+
+            @db.transaction (tx) =>
+                console.debug "running on ", @databaseName, @tableName, sql
+
+                tx.executeSql(sql, params, success, error)
+            , txError, txSuccess
 
     return WebSqlTableStore

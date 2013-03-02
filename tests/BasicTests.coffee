@@ -62,26 +62,29 @@ define ['ModelItem'], (ModelItem) ->
             # reset item
             item = new ModelItem({id: id}, options)
             loadOptions = {
+                databaseName: "TestDatabase"
                 success: onLoad
+                error: ->
+                    console.error "error on load."
             }
             item.fetch(loadOptions)
 
-        options = {
+        # Async test
+        #stop()
+
+        saveOptions = {
             databaseName: "TestDatabase"
             success: onSave
             error: (model, tx, options) ->
                 console.log "error on save"
         }
 
-        # Async test
-        #stop()
-
         item = new ModelItem({
             #id: "testItem"
             Name: "first item",
             Number: 1
             })
-        item.save(null, options)
+        item.save(null, saveOptions)
 
     test "two models", () ->
         # check whether there is db locking by per-model store

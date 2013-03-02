@@ -38,7 +38,7 @@
       WebSqlTableStore.prototype.tableName = "";
 
       WebSqlTableStore.sync = function(method, model, options) {
-        var store;
+        var findError, findSuccess, store;
         console.log("sync");
         if (!model.store) {
           store = new WebSqlTableStore(model, options);
@@ -46,8 +46,14 @@
         switch (method) {
           case "read":
             console.log("sync: read");
+            findSuccess = function(tx, res) {
+              return console.log("find success", res.rows.length);
+            };
+            findError = function() {
+              return console.error("find error");
+            };
             if (model.attributes && model.attributes[model.idAttribute]) {
-              return store.find(model, options.success, options.error);
+              return store.find(model, findSuccess, findError);
             } else {
               return store.findAll(model, options.success, options.error);
             }
@@ -193,36 +199,39 @@
       WebSqlTableStore.prototype.find = function(model, success, error) {
         var id, sql;
         id = model.attributes[model.idAttribute] || model.attributes.id;
-        sql = "SELECT `id`, `value` FROM `" + this.tableName + "` WHERE(`id`=?);";
-        return this._executeSql(sql, [model.attributes[model.idAttribute]], success, error);
+        sql = "SELECT * FROM '" + this.tableName + "' WHERE('id'=?);";
+        return this._executeSql(sql, [id], success, error);
       };
 
       WebSqlTableStore.prototype.findAll = function(model, success, error) {
-        return this._executeSql("SELECT * FROM '" + this.tableName + "';", null, success, error);
+        var sql;
+        sql = "SELECT * FROM '" + this.tableName + "';";
+        return this._executeSql(sql, null, success, error);
       };
 
       WebSqlTableStore.prototype.openDatabase = function(options) {
         if (!this.db) {
-          this.db = window.openDatabase(options.databaseName, options.dbVersion, options.databaseName, options.dbSize);
+          this.databaseName = options.databaseName;
+          this.db = window.openDatabase(this.databaseName, options.dbVersion, this.databaseName, options.dbSize);
         }
         return this.db;
       };
 
-      WebSqlTableStore.prototype._executeSql = function(SQL, params, successCallback, errorCallback) {
-        var error, success;
-        success = function(tx, result) {
-          if (successCallback) {
-            return successCallback(tx, result);
-          }
+      WebSqlTableStore.prototype._executeSql = function(sql, params, success, error) {
+        var txError, txSuccess,
+          _this = this;
+        success = success || function(tx, result) {
+          return console.log("executeSql success");
         };
-        error = function(tx, error) {
-          if (errorCallback) {
-            return errorCallback(tx, error);
-          }
+        error = error || function(tx, error) {
+          return console.error(error);
         };
+        txSuccess = function() {};
+        txError = function() {};
         return this.db.transaction(function(tx) {
-          return tx.executeSql(SQL, params, success, error);
-        });
+          console.debug("running on ", _this.databaseName, _this.tableName, sql);
+          return tx.executeSql(sql, params, success, error);
+        }, txError, txSuccess);
       };
 
       return WebSqlTableStore;

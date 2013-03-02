@@ -44,7 +44,7 @@
       return expect(0);
     });
     asyncTest("save and load Item", function() {
-      var item, onLoad, onSave, options;
+      var item, onLoad, onSave, saveOptions;
       onLoad = function(model, response, options) {
         console.log("item loaded");
         ok(model.id, "Item should have an id set.");
@@ -59,11 +59,15 @@
           id: id
         }, options);
         loadOptions = {
-          success: onLoad
+          databaseName: "TestDatabase",
+          success: onLoad,
+          error: function() {
+            return console.error("error on load.");
+          }
         };
         return item.fetch(loadOptions);
       };
-      options = {
+      saveOptions = {
         databaseName: "TestDatabase",
         success: onSave,
         error: function(model, tx, options) {
@@ -74,7 +78,7 @@
         Name: "first item",
         Number: 1
       });
-      return item.save(null, options);
+      return item.save(null, saveOptions);
     });
     return test("two models", function() {
       var item, item2;
