@@ -46,10 +46,10 @@ define ['underscore'], (_) ->
 
             switch method
                 when "read"
-                    console.log "sync: read"
+                    if options.debug then console.log "sync: read"
 
                     findSuccess = (tx, res) ->
-                        console.log "find success", res.rows.length
+                        if options.debug then console.log "find success", res.rows.length
                         len = res.rows.length;
                         if len > 0
                             #result = JSON.parse(res.rows.item(0).value)
@@ -66,13 +66,13 @@ define ['underscore'], (_) ->
                     else
                         store.findAll model, options.success, options.error
                 when "create"
-                    console.log "sync: create"
+                    if options.debug then console.log "sync: create"
                     store.create model, options.success, options.error
                 when "update"
                     console.log "sync: update"
                     store.update model, options
                 when "delete"
-                    console.log "sync: delete"
+                    if options.debug then console.log "sync: delete"
                     store.delete model, options.success, options.error
 
         #
@@ -107,7 +107,7 @@ define ['underscore'], (_) ->
 
             success = (tx, resultSet) ->
                 # check 'arguments' to see all arguments passed into the function.
-                console.log "table create success"
+                if options.debug then console.log "table create success"
                 #if options.success then options.success()
             
             error = (tx, error) ->
@@ -148,13 +148,16 @@ define ['underscore'], (_) ->
         getDefaultOptions: ->
             options = {
                 success: ->
-                    console.log "default options, success"
+                    if options.debug then console.log "default options, success"
                 error: ->
-                    console.log "default options, error"
+                    if options.debug then console.log "default options, error"
                 databaseName: "BackboneWebSqlDb"
                 tableName: "DefaultTable"
                 dbVersion: "1.0"
                 dbSize: 1000000
+                # Set debug to display debugging information in console.
+                #debug: true
+                debug: false
             }
 
         getFieldsFrom: (model) ->
@@ -232,7 +235,7 @@ define ['underscore'], (_) ->
             success = success or (tx,result) ->
                 #if WebSQLStore.debug {window.console.log(SQL, params, " - finished");}
                 #if successCallback then successCallback(tx,result)
-                console.log "executeSql success"
+                if options.debug then console.log "executeSql success"
             
             error = error or (tx, error) ->
                 #if WebSQLStore.debug 
@@ -246,7 +249,7 @@ define ['underscore'], (_) ->
                 # console.log "tx error"
 
             @db.transaction (tx) =>
-                console.debug "running on", @databaseName, @tableName, ":", sql, "with params", params
+                if options.debug then console.debug "running on", @databaseName, @tableName, ":", sql, "with params", params
 
                 tx.executeSql(sql, params, success, error)
             , txError, txSuccess

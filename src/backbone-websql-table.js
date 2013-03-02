@@ -44,10 +44,14 @@
         }
         switch (method) {
           case "read":
-            console.log("sync: read");
+            if (options.debug) {
+              console.log("sync: read");
+            }
             findSuccess = function(tx, res) {
               var len, result;
-              console.log("find success", res.rows.length);
+              if (options.debug) {
+                console.log("find success", res.rows.length);
+              }
               len = res.rows.length;
               if (len > 0) {
                 result = res.rows.item(0);
@@ -64,13 +68,17 @@
             }
             break;
           case "create":
-            console.log("sync: create");
+            if (options.debug) {
+              console.log("sync: create");
+            }
             return store.create(model, options.success, options.error);
           case "update":
             console.log("sync: update");
             return store.update(model, options);
           case "delete":
-            console.log("sync: delete");
+            if (options.debug) {
+              console.log("sync: delete");
+            }
             return store["delete"](model, options.success, options.error);
         }
       };
@@ -98,7 +106,9 @@
         });
         fieldsString = this.getFieldsString(fields);
         success = function(tx, resultSet) {
-          return console.log("table create success");
+          if (options.debug) {
+            return console.log("table create success");
+          }
         };
         error = function(tx, error) {
           return window.console.error("Error while create table", error);
@@ -139,15 +149,20 @@
         var options;
         return options = {
           success: function() {
-            return console.log("default options, success");
+            if (options.debug) {
+              return console.log("default options, success");
+            }
           },
           error: function() {
-            return console.log("default options, error");
+            if (options.debug) {
+              return console.log("default options, error");
+            }
           },
           databaseName: "BackboneWebSqlDb",
           tableName: "DefaultTable",
           dbVersion: "1.0",
-          dbSize: 1000000
+          dbSize: 1000000,
+          debug: false
         };
       };
 
@@ -239,7 +254,9 @@
         var txError, txSuccess,
           _this = this;
         success = success || function(tx, result) {
-          return console.log("executeSql success");
+          if (options.debug) {
+            return console.log("executeSql success");
+          }
         };
         error = error || function(tx, error) {
           return console.error(error);
@@ -247,7 +264,9 @@
         txSuccess = function() {};
         txError = function() {};
         return this.db.transaction(function(tx) {
-          console.debug("running on", _this.databaseName, _this.tableName, ":", sql, "with params", params);
+          if (options.debug) {
+            console.debug("running on", _this.databaseName, _this.tableName, ":", sql, "with params", params);
+          }
           return tx.executeSql(sql, params, success, error);
         }, txError, txSuccess);
       };
