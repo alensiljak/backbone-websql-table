@@ -34,6 +34,8 @@ define ['ModelItem'], (ModelItem) ->
         onLoad = (model, response, options) ->
             console.log "item loaded"
             ok(model.id, "item does not have id.")
+            # continue test
+            start()
 
         onSave = (model, response, options) ->
             console.log "model saved"
@@ -52,6 +54,9 @@ define ['ModelItem'], (ModelItem) ->
             error: ->
                 console.log "error on save"
         }
+
+        # Async test
+        stop()
 
         item = new ModelItem({
             #id: "testItem"

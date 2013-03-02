@@ -28,7 +28,7 @@
         this.model = model;
         this.model.store = this;
         defaultOptions = this.getDefaultOptions();
-        _.extend(options, defaultOptions);
+        _.defaults(options, defaultOptions);
         options.tableName = model.constructor.name;
         this.db = this.openDatabase(options);
         this.createTable(this.model, options);
@@ -38,10 +38,10 @@
         var options;
         return options = {
           success: function() {
-            return console.log("success");
+            return console.log("default options, success");
           },
           error: function() {
-            return console.log("error");
+            return console.log("default options, error");
           },
           databaseName: "BackboneWebSqlDb",
           tableName: "DefaultTable",
@@ -79,7 +79,7 @@
             return options.error();
           }
         };
-        sql = "CREATE TABLE IF NOT EXISTS '" + options.tableName + "' ('id' unique, " + fieldsString + ");";
+        sql = "CREATE TABLE IF NOT EXISTS '" + options.tableName + "' ('id' unique" + fieldsString + ");";
         return this._executeSql(sql, null, success, error);
       };
 

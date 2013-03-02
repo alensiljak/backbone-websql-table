@@ -31,7 +31,8 @@
       var item, onLoad, onSave, options;
       onLoad = function(model, response, options) {
         console.log("item loaded");
-        return ok(model.id, "item does not have id.");
+        ok(model.id, "item does not have id.");
+        return start();
       };
       onSave = function(model, response, options) {
         var id, item, loadOptions;
@@ -54,6 +55,7 @@
           return console.log("error on save");
         }
       };
+      stop();
       item = new ModelItem({
         Name: "first item",
         Number: 1

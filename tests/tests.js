@@ -26,7 +26,8 @@ Tests
       'underscore': {
         exports: "_"
       }
-    }
+    },
+    urlArgs: "bust=" + (new Date()).getTime()
   });
 
   require(['BasicTests'], function(BasicTests) {});

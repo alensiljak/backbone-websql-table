@@ -24,6 +24,7 @@ require.config {
             exports: "_"
         }
     }
+    urlArgs: "bust=" +  (new Date()).getTime()
 }
 
 # Defer Qunit so RequireJS can work its magic and resolve all modules.

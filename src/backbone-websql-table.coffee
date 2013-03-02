@@ -35,7 +35,7 @@ define ['underscore'], (_) ->
 
             # create table if required
             defaultOptions = @getDefaultOptions()
-            _.extend(options, defaultOptions)
+            _.defaults(options, defaultOptions)
             options.tableName = model.constructor.name
 
             @db = @openDatabase(options)
@@ -45,9 +45,9 @@ define ['underscore'], (_) ->
         getDefaultOptions: ->
             options = {
                 success: ->
-                    console.log "success"
+                    console.log "default options, success"
                 error: ->
-                    console.log "error"
+                    console.log "default options, error"
                 databaseName: "BackboneWebSqlDb"
                 tableName: "DefaultTable"
                 dbVersion: "1.0"
@@ -81,7 +81,7 @@ define ['underscore'], (_) ->
                 window.console.error("Error while create table", error)
                 if options.error then options.error()
 
-            sql = "CREATE TABLE IF NOT EXISTS '" + options.tableName + "' ('id' unique, " + fieldsString + ");"
+            sql = "CREATE TABLE IF NOT EXISTS '" + options.tableName + "' ('id' unique" + fieldsString + ");"
             @_executeSql(sql, null, success, error)
 
         openDatabase: (options) ->
