@@ -37,7 +37,7 @@ define ['underscore'], (_) ->
 
         @sync = (method, model, options) ->
             #console.log "sync:", method, model, options
-            console.log "sync"
+            #console.log "sync"
             if not model.store 
                 store = new WebSqlTableStore(model, options)
                 #stores.push store
@@ -50,6 +50,12 @@ define ['underscore'], (_) ->
 
                     findSuccess = (tx, res) ->
                         console.log "find success", res.rows.length
+                        len = res.rows.length;
+                        if len > 0
+                            #result = JSON.parse(res.rows.item(0).value)
+                            result = res.rows.item(0)
+                        
+                        options.success(result);
 
                     findError = ->
                         console.error "find error"
@@ -90,7 +96,12 @@ define ['underscore'], (_) ->
             if not model then console.error "Model not passed for store initialization!"
             #console.debug "create table"
 
-            fieldsString = @getFieldsString model
+            fields = @getFieldsFrom(model)
+            # remove id field as we have to specify it as unique.
+            _(fields).reject( (el) ->
+                return el == "id" 
+            )
+            fieldsString = @getFieldsString fields
 
             success = (tx, resultSet) ->
                 # check 'arguments' to see all arguments passed into the function.
@@ -101,7 +112,7 @@ define ['underscore'], (_) ->
                 window.console.error("Error while create table", error)
                 #if options.error then options.error()
 
-            sql = "CREATE TABLE IF NOT EXISTS '" + options.tableName + "' ('id' unique" + fieldsString + ");"
+            sql = "CREATE TABLE IF NOT EXISTS '" + options.tableName + "' ('id' unique, " + fieldsString + ");"
             @_executeSql(sql, null, success, error)
 
         create: (model, success, error) ->
@@ -194,7 +205,7 @@ define ['underscore'], (_) ->
         find: (model, success, error) ->
             #window.console.log("sql find");
             id = model.attributes[model.idAttribute] || model.attributes.id
-            sql = "SELECT * FROM '" + this.tableName + "' WHERE('id'=?);"
+            sql = "SELECT * FROM '" + this.tableName + "' WHERE (id=?);"
 
             @_executeSql sql, [id], success, error
 
@@ -227,7 +238,7 @@ define ['underscore'], (_) ->
                 # console.log "tx error"
 
             @db.transaction (tx) =>
-                console.debug "running on ", @databaseName, @tableName, sql
+                console.debug "running on", @databaseName, @tableName, ":", sql, "with params", params
 
                 tx.executeSql(sql, params, success, error)
             , txError, txSuccess

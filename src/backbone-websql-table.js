@@ -39,7 +39,6 @@
 
       WebSqlTableStore.sync = function(method, model, options) {
         var findError, findSuccess, store;
-        console.log("sync");
         if (!model.store) {
           store = new WebSqlTableStore(model, options);
         }
@@ -47,7 +46,13 @@
           case "read":
             console.log("sync: read");
             findSuccess = function(tx, res) {
-              return console.log("find success", res.rows.length);
+              var len, result;
+              console.log("find success", res.rows.length);
+              len = res.rows.length;
+              if (len > 0) {
+                result = res.rows.item(0);
+              }
+              return options.success(result);
             };
             findError = function() {
               return console.error("find error");
@@ -81,18 +86,22 @@
       }
 
       WebSqlTableStore.prototype.createTable = function(model, options) {
-        var error, fieldsString, sql, success;
+        var error, fields, fieldsString, sql, success;
         if (!model) {
           console.error("Model not passed for store initialization!");
         }
-        fieldsString = this.getFieldsString(model);
+        fields = this.getFieldsFrom(model);
+        _(fields).reject(function(el) {
+          return el === "id";
+        });
+        fieldsString = this.getFieldsString(fields);
         success = function(tx, resultSet) {
           return console.log("table create success");
         };
         error = function(tx, error) {
           return window.console.error("Error while create table", error);
         };
-        sql = "CREATE TABLE IF NOT EXISTS '" + options.tableName + "' ('id' unique" + fieldsString + ");";
+        sql = "CREATE TABLE IF NOT EXISTS '" + options.tableName + "' ('id' unique, " + fieldsString + ");";
         return this._executeSql(sql, null, success, error);
       };
 
@@ -199,7 +208,7 @@
       WebSqlTableStore.prototype.find = function(model, success, error) {
         var id, sql;
         id = model.attributes[model.idAttribute] || model.attributes.id;
-        sql = "SELECT * FROM '" + this.tableName + "' WHERE('id'=?);";
+        sql = "SELECT * FROM '" + this.tableName + "' WHERE (id=?);";
         return this._executeSql(sql, [id], success, error);
       };
 
@@ -229,7 +238,7 @@
         txSuccess = function() {};
         txError = function() {};
         return this.db.transaction(function(tx) {
-          console.debug("running on ", _this.databaseName, _this.tableName, sql);
+          console.debug("running on", _this.databaseName, _this.tableName, ":", sql, "with params", params);
           return tx.executeSql(sql, params, success, error);
         }, txError, txSuccess);
       };
