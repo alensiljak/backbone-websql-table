@@ -30,6 +30,7 @@ define ['underscore'], (_) ->
 
     class WebSqlTableStore
         tableName: ""
+        debug: false
 
         #
         # static methods
@@ -44,9 +45,9 @@ define ['underscore'], (_) ->
 
         defaultOptions: {
             success: ->
-                if options.debug then console.log "default options, success"
+                if @debug then console.log "default options, success"
             error: ->
-                if options.debug then console.log "default options, error"
+                if @debug then console.log "default options, error"
             databaseName: "BackboneWebSqlDb"
             tableName: "DefaultTable"
             dbVersion: "1.0"
@@ -56,43 +57,6 @@ define ['underscore'], (_) ->
             debug: false
         }
 
-        sync: (method, model, options) ->
-            #console.log "sync:", method, model, options
-            #console.log "sync"
-            if not model.store then throw { message: "WebSql Table store not initialized for model." }
-            store = model.store
-
-            switch method
-                when "read"
-                    if options.debug then console.log "sync: read"
-
-                    findSuccess = (tx, res) ->
-                        if options.debug then console.log "find success", res.rows.length
-                        len = res.rows.length;
-                        if len > 0
-                            #result = JSON.parse(res.rows.item(0).value)
-                            result = res.rows.item(0)
-                        
-                        options.success(result);
-
-                    findError = ->
-                        console.error "find error"
-
-                    if model.attributes and model.attributes[model.idAttribute]
-                        #store.find model, options.success, options.error
-                        store.find model, findSuccess, findError
-                    else
-                        store.findAll model, options.success, options.error
-                when "create"
-                    if options.debug then console.log "sync: create"
-                    store.create model, options.success, options.error
-                when "update"
-                    console.log "sync: update"
-                    store.update model, options
-                when "delete"
-                    if options.debug then console.log "sync: delete"
-                    store.delete model, options.success, options.error
-
         #
         # class methods
         #
@@ -101,20 +65,23 @@ define ['underscore'], (_) ->
             @model.store = @
             @model.sync = @sync
 
-            # create table if required
-            #defaultOptions = @getDefaultOptions()
+            # prepare options
             _.defaults(options, @defaultOptions)
 
-            # Set table name from model's type
-            @tableName = model.constructor.name
-            options.tableName = @tableName
+            @debug = options.debug
+            @setTableName(model, options)
+
+            # get the real model
+            actualModel = @getBackboneModelFor(model)
+            @model = actualModel
 
             @db = @openDatabase(options)
+            # create table if required
+            @createTable(@model, @tableName)
 
-            @createTable(@model, options)
-
-        createTable: (model, options) ->
+        createTable: (model, tableName) ->
             if not model then console.error "Model not passed for store initialization!"
+            if not tableName then throw { message: "tableName not passed to createTable." }
             #console.debug "create table"
 
             fields = @getFieldsFrom(model)
@@ -124,16 +91,15 @@ define ['underscore'], (_) ->
             )
             fieldsString = @getFieldsString fields
 
-            success = (tx, resultSet) ->
+            success = (tx, resultSet) =>
                 # check 'arguments' to see all arguments passed into the function.
-                if options.debug then console.log "table create success"
+                if @debug then console.log "table create success"
                 #if options.success then options.success()
             
             error = (tx, error) ->
                 window.console.error("Error while create table", error)
-                #if options.error then options.error()
 
-            sql = "CREATE TABLE IF NOT EXISTS '" + options.tableName + "' ('id' unique, " + fieldsString + ");"
+            sql = "CREATE TABLE IF NOT EXISTS '" + tableName + "' ('id' unique, " + fieldsString + ");"
             @_executeSql(sql, null, success, error)
 
         create: (model, success, error) ->
@@ -198,6 +164,14 @@ define ['underscore'], (_) ->
                     result += ",?"
             return result
 
+        getBackboneModelFor: (obj) ->
+            # Here we distinguish if we have a Collection or a Model.
+            if obj instanceof Backbone.Collection
+                model = new obj.model()
+            if obj instanceof Backbone.Model
+                model = obj
+            return model
+
         getModelAttributes: (model) ->
             values = []
             for key of model.attributes
@@ -239,7 +213,7 @@ define ['underscore'], (_) ->
             success = success or (tx,result) ->
                 #if WebSQLStore.debug {window.console.log(SQL, params, " - finished");}
                 #if successCallback then successCallback(tx,result)
-                if options.debug then console.log "executeSql success"
+                if @debug then console.log "executeSql success"
             
             error = error or (tx, error) ->
                 #if WebSQLStore.debug 
@@ -253,10 +227,64 @@ define ['underscore'], (_) ->
                 # console.log "tx error"
 
             @db.transaction (tx) =>
-                if options.debug then console.debug "running on", @databaseName, @tableName, ":", sql, "with params", params
+                if @debug then console.debug "running on", @databaseName, @tableName, ":", sql, "with params", params
 
                 tx.executeSql(sql, params, success, error)
             , txError, txSuccess
+
+        setTableName: (model, options) ->
+            # Set table name from model's type
+            #if options.tableName
+                # use pre-set table name. This works for collections.
+                #tableName = options.tableName
+
+            # if "model" is collection, get real model's type name
+            if model instanceof Backbone.Collection
+                tableName = model.model.name
+            if model instanceof Backbone.Model
+                # set table name to type name of the model.
+                tableName = model.constructor.name
+            # overwrite default table name.
+            if tableName then options.tableName = tableName
+
+            @tableName = tableName
+
+        sync: (method, model, options) ->
+            #console.log "sync:", method, model, options
+            #console.log "sync"
+            if not model.store then throw { message: "WebSql Table store not initialized for model." }
+            store = model.store
+
+            switch method
+                when "read"
+                    if @debug then console.log "sync: read"
+
+                    findSuccess = (tx, res) ->
+                        if @debug then console.log "find success", res.rows.length
+                        len = res.rows.length;
+                        if len > 0
+                            #result = JSON.parse(res.rows.item(0).value)
+                            result = res.rows.item(0)
+                        
+                        options.success(result);
+
+                    findError = ->
+                        console.error "find error"
+
+                    if model.attributes and model.attributes[model.idAttribute]
+                        #store.find model, options.success, options.error
+                        store.find model, findSuccess, findError
+                    else
+                        store.findAll model, options.success, options.error
+                when "create"
+                    if @debug then console.log "sync: create"
+                    store.create model, options.success, options.error
+                when "update"
+                    console.log "sync: update"
+                    store.update model, options
+                when "delete"
+                    if @debug then console.log "sync: delete"
+                    store.delete model, options.success, options.error
 
         update: (model, options) ->
             console.error "not implemented"

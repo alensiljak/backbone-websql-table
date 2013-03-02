@@ -37,6 +37,8 @@
 
       WebSqlTableStore.prototype.tableName = "";
 
+      WebSqlTableStore.prototype.debug = false;
+
       WebSqlTableStore.initialize = function(model, options) {
         var store;
         if (!model.store) {
@@ -48,12 +50,12 @@
 
       WebSqlTableStore.prototype.defaultOptions = {
         success: function() {
-          if (options.debug) {
+          if (this.debug) {
             return console.log("default options, success");
           }
         },
         error: function() {
-          if (options.debug) {
+          if (this.debug) {
             return console.log("default options, error");
           }
         },
@@ -64,70 +66,30 @@
         debug: false
       };
 
-      WebSqlTableStore.prototype.sync = function(method, model, options) {
-        var findError, findSuccess, store;
-        if (!model.store) {
-          throw {
-            message: "WebSql Table store not initialized for model."
-          };
-        }
-        store = model.store;
-        switch (method) {
-          case "read":
-            if (options.debug) {
-              console.log("sync: read");
-            }
-            findSuccess = function(tx, res) {
-              var len, result;
-              if (options.debug) {
-                console.log("find success", res.rows.length);
-              }
-              len = res.rows.length;
-              if (len > 0) {
-                result = res.rows.item(0);
-              }
-              return options.success(result);
-            };
-            findError = function() {
-              return console.error("find error");
-            };
-            if (model.attributes && model.attributes[model.idAttribute]) {
-              return store.find(model, findSuccess, findError);
-            } else {
-              return store.findAll(model, options.success, options.error);
-            }
-            break;
-          case "create":
-            if (options.debug) {
-              console.log("sync: create");
-            }
-            return store.create(model, options.success, options.error);
-          case "update":
-            console.log("sync: update");
-            return store.update(model, options);
-          case "delete":
-            if (options.debug) {
-              console.log("sync: delete");
-            }
-            return store["delete"](model, options.success, options.error);
-        }
-      };
-
       function WebSqlTableStore(model, options) {
+        var actualModel;
         this.model = model;
         this.model.store = this;
         this.model.sync = this.sync;
         _.defaults(options, this.defaultOptions);
-        this.tableName = model.constructor.name;
-        options.tableName = this.tableName;
+        this.debug = options.debug;
+        this.setTableName(model, options);
+        actualModel = this.getBackboneModelFor(model);
+        this.model = actualModel;
         this.db = this.openDatabase(options);
-        this.createTable(this.model, options);
+        this.createTable(this.model, this.tableName);
       }
 
-      WebSqlTableStore.prototype.createTable = function(model, options) {
-        var error, fields, fieldsString, sql, success;
+      WebSqlTableStore.prototype.createTable = function(model, tableName) {
+        var error, fields, fieldsString, sql, success,
+          _this = this;
         if (!model) {
           console.error("Model not passed for store initialization!");
+        }
+        if (!tableName) {
+          throw {
+            message: "tableName not passed to createTable."
+          };
         }
         fields = this.getFieldsFrom(model);
         _(fields).reject(function(el) {
@@ -135,14 +97,14 @@
         });
         fieldsString = this.getFieldsString(fields);
         success = function(tx, resultSet) {
-          if (options.debug) {
+          if (_this.debug) {
             return console.log("table create success");
           }
         };
         error = function(tx, error) {
           return window.console.error("Error while create table", error);
         };
-        sql = "CREATE TABLE IF NOT EXISTS '" + options.tableName + "' ('id' unique, " + fieldsString + ");";
+        sql = "CREATE TABLE IF NOT EXISTS '" + tableName + "' ('id' unique, " + fieldsString + ");";
         return this._executeSql(sql, null, success, error);
       };
 
@@ -217,6 +179,17 @@
         return result;
       };
 
+      WebSqlTableStore.prototype.getBackboneModelFor = function(obj) {
+        var model;
+        if (obj instanceof Backbone.Collection) {
+          model = new obj.model();
+        }
+        if (obj instanceof Backbone.Model) {
+          model = obj;
+        }
+        return model;
+      };
+
       WebSqlTableStore.prototype.getModelAttributes = function(model) {
         var key, values;
         values = [];
@@ -262,7 +235,7 @@
         var txError, txSuccess,
           _this = this;
         success = success || function(tx, result) {
-          if (options.debug) {
+          if (this.debug) {
             return console.log("executeSql success");
           }
         };
@@ -272,11 +245,74 @@
         txSuccess = function() {};
         txError = function() {};
         return this.db.transaction(function(tx) {
-          if (options.debug) {
+          if (_this.debug) {
             console.debug("running on", _this.databaseName, _this.tableName, ":", sql, "with params", params);
           }
           return tx.executeSql(sql, params, success, error);
         }, txError, txSuccess);
+      };
+
+      WebSqlTableStore.prototype.setTableName = function(model, options) {
+        var tableName;
+        if (model instanceof Backbone.Collection) {
+          tableName = model.model.name;
+        }
+        if (model instanceof Backbone.Model) {
+          tableName = model.constructor.name;
+        }
+        if (tableName) {
+          options.tableName = tableName;
+        }
+        return this.tableName = tableName;
+      };
+
+      WebSqlTableStore.prototype.sync = function(method, model, options) {
+        var findError, findSuccess, store;
+        if (!model.store) {
+          throw {
+            message: "WebSql Table store not initialized for model."
+          };
+        }
+        store = model.store;
+        switch (method) {
+          case "read":
+            if (this.debug) {
+              console.log("sync: read");
+            }
+            findSuccess = function(tx, res) {
+              var len, result;
+              if (this.debug) {
+                console.log("find success", res.rows.length);
+              }
+              len = res.rows.length;
+              if (len > 0) {
+                result = res.rows.item(0);
+              }
+              return options.success(result);
+            };
+            findError = function() {
+              return console.error("find error");
+            };
+            if (model.attributes && model.attributes[model.idAttribute]) {
+              return store.find(model, findSuccess, findError);
+            } else {
+              return store.findAll(model, options.success, options.error);
+            }
+            break;
+          case "create":
+            if (this.debug) {
+              console.log("sync: create");
+            }
+            return store.create(model, options.success, options.error);
+          case "update":
+            console.log("sync: update");
+            return store.update(model, options);
+          case "delete":
+            if (this.debug) {
+              console.log("sync: delete");
+            }
+            return store["delete"](model, options.success, options.error);
+        }
       };
 
       WebSqlTableStore.prototype.update = function(model, options) {
