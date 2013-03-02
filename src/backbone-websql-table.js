@@ -37,11 +37,41 @@
 
       WebSqlTableStore.prototype.tableName = "";
 
-      WebSqlTableStore.sync = function(method, model, options) {
-        var findError, findSuccess, store;
+      WebSqlTableStore.initialize = function(model, options) {
+        var store;
         if (!model.store) {
           store = new WebSqlTableStore(model, options);
+          model.store = store;
+          return model.sync = store.sync;
         }
+      };
+
+      WebSqlTableStore.prototype.defaultOptions = {
+        success: function() {
+          if (options.debug) {
+            return console.log("default options, success");
+          }
+        },
+        error: function() {
+          if (options.debug) {
+            return console.log("default options, error");
+          }
+        },
+        databaseName: "BackboneWebSqlDb",
+        tableName: "DefaultTable",
+        dbVersion: "1.0",
+        dbSize: 1000000,
+        debug: false
+      };
+
+      WebSqlTableStore.prototype.sync = function(method, model, options) {
+        var findError, findSuccess, store;
+        if (!model.store) {
+          throw {
+            message: "WebSql Table store not initialized for model."
+          };
+        }
+        store = model.store;
         switch (method) {
           case "read":
             if (options.debug) {
@@ -84,11 +114,10 @@
       };
 
       function WebSqlTableStore(model, options) {
-        var defaultOptions;
         this.model = model;
         this.model.store = this;
-        defaultOptions = this.getDefaultOptions();
-        _.defaults(options, defaultOptions);
+        this.model.sync = this.sync;
+        _.defaults(options, this.defaultOptions);
         this.tableName = model.constructor.name;
         options.tableName = this.tableName;
         this.db = this.openDatabase(options);
@@ -143,27 +172,6 @@
         id = model.attributes[model.idAttribute] || model.attributes.id;
         sql = "DELETE FROM '" + this.tableName + "' WHERE (id=?);";
         return this._executeSql(sql, [model.attributes[model.idAttribute]], success, error);
-      };
-
-      WebSqlTableStore.prototype.getDefaultOptions = function() {
-        var options;
-        return options = {
-          success: function() {
-            if (options.debug) {
-              return console.log("default options, success");
-            }
-          },
-          error: function() {
-            if (options.debug) {
-              return console.log("default options, error");
-            }
-          },
-          databaseName: "BackboneWebSqlDb",
-          tableName: "DefaultTable",
-          dbVersion: "1.0",
-          dbSize: 1000000,
-          debug: false
-        };
       };
 
       WebSqlTableStore.prototype.getFieldsFrom = function(model) {

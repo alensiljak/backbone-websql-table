@@ -35,14 +35,32 @@ define ['underscore'], (_) ->
         # static methods
         #
 
-        @sync = (method, model, options) ->
-            #console.log "sync:", method, model, options
-            #console.log "sync"
+        @initialize = (model, options) ->
+            # set sync
             if not model.store 
                 store = new WebSqlTableStore(model, options)
-                #stores.push store
-                #model.store = store
-            #store = WebSqlTableStore.getStoreForModel(model, options)
+                model.store = store
+                model.sync = store.sync
+
+        defaultOptions: {
+            success: ->
+                if options.debug then console.log "default options, success"
+            error: ->
+                if options.debug then console.log "default options, error"
+            databaseName: "BackboneWebSqlDb"
+            tableName: "DefaultTable"
+            dbVersion: "1.0"
+            dbSize: 1000000
+            # Set debug to display debugging information in console.
+            #debug: true
+            debug: false
+        }
+
+        sync: (method, model, options) ->
+            #console.log "sync:", method, model, options
+            #console.log "sync"
+            if not model.store then throw { message: "WebSql Table store not initialized for model." }
+            store = model.store
 
             switch method
                 when "read"
@@ -81,10 +99,11 @@ define ['underscore'], (_) ->
 
         constructor: (@model, options) ->
             @model.store = @
+            @model.sync = @sync
 
             # create table if required
-            defaultOptions = @getDefaultOptions()
-            _.defaults(options, defaultOptions)
+            #defaultOptions = @getDefaultOptions()
+            _.defaults(options, @defaultOptions)
 
             # Set table name from model's type
             @tableName = model.constructor.name
@@ -144,21 +163,6 @@ define ['underscore'], (_) ->
             id = model.attributes[model.idAttribute] or model.attributes.id
             sql = "DELETE FROM '" + @tableName + "' WHERE (id=?);"
             @_executeSql sql,[model.attributes[model.idAttribute]], success, error
-
-        getDefaultOptions: ->
-            options = {
-                success: ->
-                    if options.debug then console.log "default options, success"
-                error: ->
-                    if options.debug then console.log "default options, error"
-                databaseName: "BackboneWebSqlDb"
-                tableName: "DefaultTable"
-                dbVersion: "1.0"
-                dbSize: 1000000
-                # Set debug to display debugging information in console.
-                #debug: true
-                debug: false
-            }
 
         getFieldsFrom: (model) ->
             if not model then throw { name: "InvalidArgumentException", message: "Model not passed to getFieldsFrom." }
