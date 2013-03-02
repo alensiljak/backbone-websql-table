@@ -1,7 +1,6 @@
-<!doctype html>
 <html>
 <body>
-Backbone WebSQL Table adapter
+<h1>Backbone WebSQL Table adapter</h1>
 
 Intended for use with PhoneGap, Backbone, and WebSQL.
 This adapter plugs into Backbone so that collections and models synchronize with WebSQL storage. This is offered by PhoneGap as the default storage method, provided by Android WebView.
