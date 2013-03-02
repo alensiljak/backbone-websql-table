@@ -87,6 +87,8 @@ define ['ModelItem'], (ModelItem) ->
         item.save(null, saveOptions)
 
     test "two models", () ->
+        # incomplete
+        
         # check whether there is db locking by per-model store
         item = new ModelItem()
         #item.save()
