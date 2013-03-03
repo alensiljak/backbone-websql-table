@@ -123,7 +123,7 @@
         }
         fields = this.getFieldsFrom(model);
         fieldsString = this.getFieldsString(fields);
-        values = this.getModelAttributes(model);
+        values = this.getModelAttributeValues(model);
         fieldsPlaceholder = this.getFieldsPlaceholder(fields);
         sql = "INSERT INTO '" + model.store.tableName + "' (" + fieldsString + ") VALUES (" + fieldsPlaceholder + ");";
         return this._executeSql(sql, values, success, error);
@@ -190,7 +190,7 @@
         return model;
       };
 
-      WebSqlTableStore.prototype.getModelAttributes = function(model) {
+      WebSqlTableStore.prototype.getModelAttributeValues = function(model) {
         var key, values;
         values = [];
         for (key in model.attributes) {
@@ -201,13 +201,25 @@
 
       WebSqlTableStore.prototype.getModelValuesString = function(model) {
         var value, values, valuesString, _i, _len;
-        values = this.getModelAttributes(model);
+        values = this.getModelAttributeValues(model);
         valuesString = "";
         for (_i = 0, _len = values.length; _i < _len; _i++) {
           value = values[_i];
           valuesString += ",'" + value + "'";
         }
         return valuesString;
+      };
+
+      WebSqlTableStore.prototype.getUpdateFieldsAndValuesArray = function(model) {
+        var fields, i, result, values, _i, _ref;
+        fields = this.getFieldsFrom(model);
+        values = this.getModelAttributeValues(model);
+        result = [];
+        for (i = _i = 0, _ref = fields.length - 1; _i <= _ref; i = _i += 1) {
+          result.push(fields[i]);
+          result.push(values[i]);
+        }
+        return result;
       };
 
       WebSqlTableStore.prototype.find = function(model, success, error) {
@@ -239,8 +251,11 @@
             return console.log("executeSql success");
           }
         };
-        error = error || function(tx, error) {
-          return console.error(error);
+        error = function(tx, err) {
+          console.error(err);
+          if (error) {
+            return error(err);
+          }
         };
         txSuccess = function() {};
         txError = function() {};
@@ -315,7 +330,7 @@
                 }
                 return options.success(result);
               };
-              return store.find(model, findSuccess, findError);
+              return store.find(model, success, onError);
             }
             break;
           case "create":
@@ -324,8 +339,10 @@
             }
             return store.create(model, options.success, options.error);
           case "update":
-            console.log("sync: update");
-            return store.update(model, options);
+            if (this.debug) {
+              console.log("sync: update");
+            }
+            return store.update(model, options.success, options.error);
           case "delete":
             if (this.debug) {
               console.log("sync: delete");
@@ -334,12 +351,25 @@
         }
       };
 
-      WebSqlTableStore.prototype.update = function(model, options) {
-        var id, sql;
-        console.error("not implemented");
+      WebSqlTableStore.prototype.update = function(model, success, error) {
+        var fields, i, id, sql, values, _i, _ref;
+        if (this.debug) {
+          console.log("updating model", model.get('id'));
+        }
         id = model.attributes[model.idAttribute] || model.attributes.id;
-        sql = "UPDATE '" + this.tableName + "' SET `value`=? WHERE(`id`=?);";
-        return this._executeSql(sql, [JSON.stringify(model.toJSON()), model.attributes[model.idAttribute]], success, error);
+        sql = "UPDATE '" + this.tableName + "' SET ";
+        fields = this.getFieldsFrom(model);
+        for (i = _i = 0, _ref = fields.length - 1; _i <= _ref; i = _i += 1) {
+          if (i !== 0) {
+            sql += ", ";
+          }
+          sql += fields[i];
+          sql += "=?";
+        }
+        sql += " WHERE (id=?)";
+        values = this.getModelAttributeValues(model);
+        values.push(model.get('id'));
+        return this._executeSql(sql, values, success, error);
       };
 
       return WebSqlTableStore;

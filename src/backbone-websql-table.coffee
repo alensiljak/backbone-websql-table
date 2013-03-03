@@ -118,7 +118,7 @@ define ['underscore'], (_) ->
             fields = @getFieldsFrom(model)
             fieldsString = @getFieldsString(fields)
             #valuesString = @getModelValuesString(model)
-            values = @getModelAttributes(model)
+            values = @getModelAttributeValues(model)
             fieldsPlaceholder = @getFieldsPlaceholder(fields)
             sql = "INSERT INTO '" + model.store.tableName + "' (" + fieldsString + ") VALUES (" + fieldsPlaceholder + ");"
             #@_executeSql sql, [model.attributes[model.idAttribute], JSON.stringify(model.toJSON())], success, error
@@ -172,7 +172,7 @@ define ['underscore'], (_) ->
                 model = obj
             return model
 
-        getModelAttributes: (model) ->
+        getModelAttributeValues: (model) ->
             values = []
             for key of model.attributes
                 #if key != "id" 
@@ -182,7 +182,7 @@ define ['underscore'], (_) ->
 
         # not used
         getModelValuesString: (model) ->
-            values = @getModelAttributes(model)
+            values = @getModelAttributeValues(model)
 
             # generate string
             valuesString = ""
@@ -190,6 +190,19 @@ define ['underscore'], (_) ->
                 valuesString += ",'" + value + "'"
 
             return valuesString
+
+        getUpdateFieldsAndValuesArray: (model) ->
+            fields = @getFieldsFrom(model)
+            values = @getModelAttributeValues(model)
+            #sql = "UPDATE '" + @tableName + "' SET `value`=? WHERE(`id`=?);"
+            #sql = "UPDATE '" + @tableName + "' SET '?'=? WHERE (id=?);"
+            result = []
+
+            for i in [0..fields.length - 1] by 1
+                result.push fields[i]
+                result.push values[i]
+                
+            return result
 
         find: (model, success, error) ->
             #window.console.log("sql find");
@@ -215,11 +228,12 @@ define ['underscore'], (_) ->
                 #if successCallback then successCallback(tx,result)
                 if @debug then console.log "executeSql success"
             
-            error = error or (tx, error) ->
+            error = (tx, err) ->
                 #if WebSQLStore.debug 
                 #    window.console.error(SQL, params, " - error: " + error)
-                console.error error
+                console.error err
                 #if errorCallback then errorCallback(tx,error)
+                if error then error(err)
             
             txSuccess = ->
                 # console.log "tx success"
@@ -289,7 +303,7 @@ define ['underscore'], (_) ->
                             
                             options.success(result)
                         
-                        store.find model, findSuccess, findError
+                        store.find model, success, onError
 
                     #if model.attributes and model.attributes[model.idAttribute]
                         #store.find model, options.success, options.error
@@ -299,18 +313,38 @@ define ['underscore'], (_) ->
                 when "create"
                     if @debug then console.log "sync: create"
                     store.create model, options.success, options.error
+
                 when "update"
-                    console.log "sync: update"
-                    store.update model, options
+                    if @debug then console.log "sync: update"
+                    store.update model, options.success, options.error
+
                 when "delete"
                     if @debug then console.log "sync: delete"
                     store.delete model, options.success, options.error
 
-        update: (model, options) ->
-            console.error "not implemented"
+        update: (model, success, error) ->
+            #console.error "not implemented"
+            if @debug then console.log "updating model", model.get('id')
 
             id = model.attributes[model.idAttribute] or model.attributes.id
-            sql = "UPDATE '" + @tableName + "' SET `value`=? WHERE(`id`=?);"
-            @_executeSql sql,[JSON.stringify(model.toJSON()), model.attributes[model.idAttribute]], success, error
+
+            #sql = "UPDATE '" + @tableName + "' SET `value`=? WHERE(`id`=?);"
+            #fieldsAndValues = @getUpdateFieldsAndValuesArray(model)
+            #fieldsAndValues.push model.get('id')
+            #sql = "UPDATE '" + @tableName + "' SET ?=? WHERE (id=?);"
+            sql = "UPDATE '" + @tableName + "' SET "
+
+            fields = @getFieldsFrom(model)
+            for i in [0..fields.length - 1] by 1
+                if i != 0 then sql += ", "
+                sql += fields[i]
+                sql += "=?"
+            sql += " WHERE (id=?)"
+
+            values = @getModelAttributeValues(model)
+            values.push model.get('id')
+
+            #@_executeSql sql,[JSON.stringify(model.toJSON()), model.attributes[model.idAttribute]], success, error
+            @_executeSql sql, values, success, error
     
     return WebSqlTableStore
