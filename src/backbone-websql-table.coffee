@@ -259,23 +259,43 @@ define ['underscore'], (_) ->
                 when "read"
                     if @debug then console.log "sync: read"
 
-                    findSuccess = (tx, res) ->
-                        if @debug then console.log "find success", res.rows.length
-                        len = res.rows.length;
-                        if len > 0
-                            #result = JSON.parse(res.rows.item(0).value)
-                            result = res.rows.item(0)
-                        
-                        options.success(result);
-
-                    findError = ->
+                    onError = ->
                         console.error "find error"
+                        if options.error then options.error()
 
-                    if model.attributes and model.attributes[model.idAttribute]
-                        #store.find model, options.success, options.error
+                    if model instanceof Backbone.Collection
+                        success = (tx, res) =>
+                            if @debug then console.log "loaded collection"
+
+                            len = res.rows.length
+                            if len > 0 
+                                result = [];
+
+                                for i in [0..len - 1] by 1
+                                    #result.push(JSON.parse(res.rows.item(i).value));
+                                    result.push res.rows.item(i)
+
+                            options.success(result)
+
+                        store.findAll model, success, onError
+
+                    if model instanceof Backbone.Model
+                        success = (tx, res) ->
+                            if @debug then console.log "find success", res.rows.length
+                            len = res.rows.length;
+                            if len > 0
+                                #result = JSON.parse(res.rows.item(0).value)
+                                result = res.rows.item(0)
+                            
+                            options.success(result)
+                        
                         store.find model, findSuccess, findError
-                    else
-                        store.findAll model, options.success, options.error
+
+                    #if model.attributes and model.attributes[model.idAttribute]
+                        #store.find model, options.success, options.error
+                    #else
+                        #store.findAll model, options.success, options.error
+
                 when "create"
                     if @debug then console.log "sync: create"
                     store.create model, options.success, options.error

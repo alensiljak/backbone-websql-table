@@ -267,7 +267,8 @@
       };
 
       WebSqlTableStore.prototype.sync = function(method, model, options) {
-        var findError, findSuccess, store;
+        var onError, store, success,
+          _this = this;
         if (!model.store) {
           throw {
             message: "WebSql Table store not initialized for model."
@@ -279,24 +280,42 @@
             if (this.debug) {
               console.log("sync: read");
             }
-            findSuccess = function(tx, res) {
-              var len, result;
-              if (this.debug) {
-                console.log("find success", res.rows.length);
+            onError = function() {
+              console.error("find error");
+              if (options.error) {
+                return options.error();
               }
-              len = res.rows.length;
-              if (len > 0) {
-                result = res.rows.item(0);
-              }
-              return options.success(result);
             };
-            findError = function() {
-              return console.error("find error");
-            };
-            if (model.attributes && model.attributes[model.idAttribute]) {
+            if (model instanceof Backbone.Collection) {
+              success = function(tx, res) {
+                var i, len, result, _i, _ref;
+                if (_this.debug) {
+                  console.log("loaded collection");
+                }
+                len = res.rows.length;
+                if (len > 0) {
+                  result = [];
+                  for (i = _i = 0, _ref = len - 1; _i <= _ref; i = _i += 1) {
+                    result.push(res.rows.item(i));
+                  }
+                }
+                return options.success(result);
+              };
+              store.findAll(model, success, onError);
+            }
+            if (model instanceof Backbone.Model) {
+              success = function(tx, res) {
+                var len, result;
+                if (this.debug) {
+                  console.log("find success", res.rows.length);
+                }
+                len = res.rows.length;
+                if (len > 0) {
+                  result = res.rows.item(0);
+                }
+                return options.success(result);
+              };
               return store.find(model, findSuccess, findError);
-            } else {
-              return store.findAll(model, options.success, options.error);
             }
             break;
           case "create":
