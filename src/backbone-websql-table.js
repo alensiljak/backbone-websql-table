@@ -229,10 +229,21 @@
         return this._executeSql(sql, [id], success, error);
       };
 
-      WebSqlTableStore.prototype.findAll = function(model, success, error) {
-        var sql;
-        sql = "SELECT * FROM '" + this.tableName + "';";
-        return this._executeSql(sql, null, success, error);
+      WebSqlTableStore.prototype.findAll = function(model, filter, success, error) {
+        var param, params, sql;
+        sql = "SELECT * FROM '" + this.tableName + "'";
+        params = [];
+        if (filter) {
+          sql += " WHERE (";
+          for (param in filter) {
+            sql += param;
+            sql += "=?";
+            params.push(filter[param]);
+          }
+          sql += ")";
+        }
+        sql += ";";
+        return this._executeSql(sql, params, success, error);
       };
 
       WebSqlTableStore.prototype.openDatabase = function(options) {
@@ -316,7 +327,7 @@
                 }
                 return options.success(result);
               };
-              store.findAll(model, success, onError);
+              store.findAll(model, options.filter, success, onError);
             }
             if (model instanceof Backbone.Model) {
               success = function(tx, res) {

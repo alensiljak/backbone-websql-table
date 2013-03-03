@@ -211,10 +211,23 @@ define ['underscore'], (_) ->
 
             @_executeSql sql, [id], success, error
 
-        findAll: (model, success,error) ->
+        findAll: (model, filter, success, error) ->
             # window.console.log("sql findAll");
-            sql = "SELECT * FROM '" + this.tableName + "';"
-            @_executeSql sql, null, success, error
+            sql = "SELECT * FROM '" + this.tableName + "'"
+            params = []
+
+            if filter
+                #
+                sql += " WHERE ("
+                for param of filter
+                    sql += param
+                    sql += "=?"
+                    params.push filter[param]
+                sql += ")"
+
+            sql += ";"
+
+            @_executeSql sql, params, success, error
 
         openDatabase: (options) ->
             if not @db 
@@ -291,7 +304,7 @@ define ['underscore'], (_) ->
 
                             options.success(result)
 
-                        store.findAll model, success, onError
+                        store.findAll model, options.filter, success, onError
 
                     if model instanceof Backbone.Model
                         success = (tx, res) ->
