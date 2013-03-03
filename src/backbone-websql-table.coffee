@@ -236,12 +236,13 @@ define ['underscore'], (_) ->
             return @db
 
         _executeSql: (sql, params, success, error) ->
-            success = success or (tx,result) ->
+            onSuccess = (tx,result) ->
                 #if WebSQLStore.debug {window.console.log(SQL, params, " - finished");}
                 #if successCallback then successCallback(tx,result)
                 if @debug then console.log "executeSql success"
+                if success then success(tx, result)
             
-            error = (tx, err) ->
+            onError = (tx, err) ->
                 #if WebSQLStore.debug 
                 #    window.console.error(SQL, params, " - error: " + error)
                 console.error err
@@ -256,7 +257,7 @@ define ['underscore'], (_) ->
             @db.transaction (tx) =>
                 if @debug then console.debug "running on", @databaseName, @tableName, ":", sql, "with params", params
 
-                tx.executeSql(sql, params, success, error)
+                tx.executeSql(sql, params, onSuccess, onError)
             , txError, txSuccess
 
         setTableName: (model, options) ->

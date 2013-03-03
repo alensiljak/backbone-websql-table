@@ -255,14 +255,17 @@
       };
 
       WebSqlTableStore.prototype._executeSql = function(sql, params, success, error) {
-        var txError, txSuccess,
+        var onError, onSuccess, txError, txSuccess,
           _this = this;
-        success = success || function(tx, result) {
+        onSuccess = function(tx, result) {
           if (this.debug) {
-            return console.log("executeSql success");
+            console.log("executeSql success");
+          }
+          if (success) {
+            return success(tx, result);
           }
         };
-        error = function(tx, err) {
+        onError = function(tx, err) {
           console.error(err);
           if (error) {
             return error(err);
@@ -274,7 +277,7 @@
           if (_this.debug) {
             console.debug("running on", _this.databaseName, _this.tableName, ":", sql, "with params", params);
           }
-          return tx.executeSql(sql, params, success, error);
+          return tx.executeSql(sql, params, onSuccess, onError);
         }, txError, txSuccess);
       };
 
